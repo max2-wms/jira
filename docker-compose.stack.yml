@@ -1,0 +1,63 @@
+version: '3.3'
+
+services:
+
+  # docker run -it -d -p 8080:8080 -v /var/run/docker.sock:/var/run/docker.sock dockersamples/visualizer
+  viz:
+    image: dockersamples/visualizer
+    ports:
+      - '8080:8080'
+    networks:
+      - jiranet
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+    links:
+      - jira
+      - mysql
+    depends_on:
+      - jira
+      - mysql
+
+  jira:
+    image: blacklabelops/jira
+    volumes:
+      - jiradata:/var/atlassian/jira
+    ports:
+      - '80:8080'
+    networks:
+      - jiranet
+    environment:
+      - 'JIRA_DATABASE_URL=mysql://jiradb@mysql/jiradb'
+      - 'JIRA_DB_PASSWORD=jellyfish'
+      - 'JVM_MINIMUM_MEMORY=384m'
+      - 'JVM_MAXIMUM_MEMORY=1g'
+    depends_on:
+      - mysql
+    labels:
+      com.blacklabelops.description: "Atlassian Jira"
+      com.blacklabelops.service: "jira"
+
+  mysql:
+    image: mysql:5.6
+    networks:
+      - jiranet
+    volumes:
+      - mysqldata:/var/lib/mysql
+    environment:
+      - 'MYSQL_ROOT_PASSWORD=verybigsecretrootpassword'
+      - 'MYSQL_DATABASE=jiradb'
+      - 'MYSQL_USER=jiradb'
+      - 'MYSQL_PASSWORD=jellyfish'
+    labels:
+      com.blacklabelops.description: "mysql Database Server"
+      com.blacklabelops.service: "mysql"
+
+volumes:
+  jiradata:
+    external: false
+  mysqldata:
+    external: false
+
+networks:
+  jiranet:
+    driver: overlay
